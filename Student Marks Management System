@@ -1,0 +1,401 @@
+# Student Marks Management System
+# Enhanced version with data persistence, statistics, and full CRUD operations
+
+import json
+import os
+
+# Dictionary to store student records
+students = {}
+
+# File to store data
+DATA_FILE = "students_data.json"
+
+# ==================== DATA PERSISTENCE FUNCTIONS ====================
+
+def save_data():
+    """Save student data to a JSON file."""
+    try:
+        with open(DATA_FILE, "w") as f:
+            json.dump(students, f, indent=4)
+        print("✅ Data saved successfully.")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving data: {e}")
+        return False
+
+def load_data():
+    """Load student data from a JSON file."""
+    global students
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r") as f:
+                students = json.load(f)
+            # Convert marks back to float (JSON stores them as float automatically)
+            for roll in students:
+                students[roll]["marks"] = float(students[roll]["marks"])
+            print("✅ Data loaded successfully.")
+            return True
+        except Exception as e:
+            print(f"❌ Error loading data: {e}")
+            return False
+    else:
+        print("📁 No existing data found. Starting fresh.")
+        return True
+
+# ==================== STUDENT MANAGEMENT FUNCTIONS ====================
+
+def add_student():
+    """Add a new student record."""
+    print("\n" + "="*50)
+    print("ADD NEW STUDENT")
+    print("="*50)
+    
+    name = input("Enter student name: ").strip()
+    if not name:
+        print("❌ Name cannot be empty.")
+        return
+    
+    roll = input("Enter roll number: ").strip()
+    if not roll:
+        print("❌ Roll number cannot be empty.")
+        return
+    
+    # Check if roll number already exists
+    if roll in students:
+        print(f"⚠️ Roll number {roll} already exists for {students[roll]['name']}.")
+        overwrite = input("Overwrite? (yes/no): ").strip().lower()
+        if overwrite not in ['yes', 'y']:
+            print("❌ Student not added.")
+            return
+    
+    try:
+        marks = float(input("Enter marks (out of 100): "))
+        if marks < 0 or marks > 100:
+            print("❌ Marks must be between 0 and 100.")
+            return
+            
+        # Add student details to dictionary
+        students[roll] = {"name": name, "marks": marks}
+        print(f"✅ Student {name} (Roll: {roll}) added successfully.")
+        
+        # Auto-save after adding
+        save_data()
+        
+    except ValueError:
+        print("❌ Invalid marks. Please enter a number.")
+
+def view_student():
+    """View details of a single student by roll number."""
+    print("\n" + "="*50)
+    print("VIEW STUDENT DETAILS")
+    print("="*50)
+    
+    roll = input("Enter roll number: ").strip()
+    if roll in students:
+        student = students[roll]
+        print(f"\n📋 Student Details:")
+        print(f"   Name: {student['name']}")
+        print(f"   Roll No: {roll}")
+        print(f"   Marks: {student['marks']}/100")
+        
+        # Add grade calculation
+        marks = student['marks']
+        if marks >= 90:
+            grade = "A+"
+        elif marks >= 80:
+            grade = "A"
+        elif marks >= 70:
+            grade = "B"
+        elif marks >= 60:
+            grade = "C"
+        elif marks >= 50:
+            grade = "D"
+        else:
+            grade = "F"
+        print(f"   Grade: {grade}")
+        
+    else:
+        print("❌ Student not found.")
+
+def view_all_students():
+    """View all student records."""
+    print("\n" + "="*50)
+    print("ALL STUDENT RECORDS")
+    print("="*50)
+    
+    if not students:
+        print("📭 No student records found.")
+        return
+    
+    # Sort by roll number
+    sorted_rolls = sorted(students.keys())
+    
+    for roll in sorted_rolls:
+        info = students[roll]
+        print(f"📌 {info['name']} (Roll: {roll}) - Marks: {info['marks']}/100")
+
+def update_marks():
+    """Update marks for an existing student."""
+    print("\n" + "="*50)
+    print("UPDATE STUDENT MARKS")
+    print("="*50)
+    
+    roll = input("Enter roll number to update: ").strip()
+    if roll in students:
+        print(f"\nCurrent Details:")
+        print(f"Name: {students[roll]['name']}")
+        print(f"Current Marks: {students[roll]['marks']}")
+        
+        try:
+            new_marks = float(input("\nEnter new marks (0-100): "))
+            if new_marks < 0 or new_marks > 100:
+                print("❌ Marks must be between 0 and 100.")
+                return
+                
+            students[roll]["marks"] = new_marks
+            print(f"✅ Marks updated to {new_marks} for {students[roll]['name']}.")
+            save_data()
+            
+        except ValueError:
+            print("❌ Invalid marks. Please enter a number.")
+    else:
+        print("❌ Student not found.")
+
+def delete_student():
+    """Delete a student record."""
+    print("\n" + "="*50)
+    print("DELETE STUDENT")
+    print("="*50)
+    
+    roll = input("Enter roll number to delete: ").strip()
+    if roll in students:
+        name = students[roll]["name"]
+        marks = students[roll]["marks"]
+        
+        print(f"\nStudent to delete:")
+        print(f"Name: {name}")
+        print(f"Roll: {roll}")
+        print(f"Marks: {marks}")
+        
+        confirm = input("\nAre you sure you want to delete this student? (yes/no): ").strip().lower()
+        
+        if confirm in ['yes', 'y']:
+            del students[roll]
+            print(f"✅ Student {name} (Roll: {roll}) deleted.")
+            save_data()
+        else:
+            print("❌ Deletion cancelled.")
+    else:
+        print("❌ Student not found.")
+
+# ==================== STATISTICS FUNCTIONS ====================
+
+def show_statistics():
+    """Display statistics for all students."""
+    print("\n" + "="*50)
+    print("CLASS STATISTICS")
+    print("="*50)
+    
+    if not students:
+        print("📭 No student records available.")
+        return
+    
+    # Extract marks and names
+    marks_list = [info["marks"] for info in students.values()]
+    names_list = [info["name"] for info in students.values()]
+    rolls_list = list(students.keys())
+    
+    # Calculate statistics
+    total_students = len(students)
+    average_marks = sum(marks_list) / total_students if total_students > 0 else 0
+    highest_marks = max(marks_list) if marks_list else 0
+    lowest_marks = min(marks_list) if marks_list else 0
+    
+    # Find students with highest and lowest marks
+    highest_index = marks_list.index(highest_marks)
+    lowest_index = marks_list.index(lowest_marks)
+    
+    # Count grades
+    grade_counts = {"A+": 0, "A": 0, "B": 0, "C": 0, "D": 0, "F": 0}
+    for marks in marks_list:
+        if marks >= 90:
+            grade_counts["A+"] += 1
+        elif marks >= 80:
+            grade_counts["A"] += 1
+        elif marks >= 70:
+            grade_counts["B"] += 1
+        elif marks >= 60:
+            grade_counts["C"] += 1
+        elif marks >= 50:
+            grade_counts["D"] += 1
+        else:
+            grade_counts["F"] += 1
+    
+    # Display statistics
+    print(f"\n📊 Basic Statistics:")
+    print(f"   Total Students: {total_students}")
+    print(f"   Average Marks: {average_marks:.2f}/100")
+    print(f"   Highest Marks: {highest_marks}/100 ({names_list[highest_index]} - {rolls_list[highest_index]})")
+    print(f"   Lowest Marks: {lowest_marks}/100 ({names_list[lowest_index]} - {rolls_list[lowest_index]})")
+    
+    print(f"\n🎓 Grade Distribution:")
+    for grade, count in grade_counts.items():
+        if count > 0:
+            percentage = (count / total_students) * 100
+            print(f"   {grade}: {count} student(s) ({percentage:.1f}%)")
+    
+    # Performance analysis
+    print(f"\n📈 Performance Analysis:")
+    above_average = sum(1 for marks in marks_list if marks > average_marks)
+    print(f"   Students above average: {above_average}/{total_students}")
+    
+    # Pass/Fail count (assuming 40 is passing)
+    passing_marks = 40
+    passed = sum(1 for marks in marks_list if marks >= passing_marks)
+    failed = total_students - passed
+    print(f"   Passed (≥{passing_marks}): {passed} student(s)")
+    print(f"   Failed (<{passing_marks}): {failed} student(s)")
+
+def search_student():
+    """Search for students by name or roll number."""
+    print("\n" + "="*50)
+    print("SEARCH STUDENT")
+    print("="*50)
+    print("1. Search by Roll Number")
+    print("2. Search by Name")
+    
+    choice = input("\nEnter choice (1-2): ").strip()
+    
+    if choice == '1':
+        roll = input("Enter roll number: ").strip()
+        if roll in students:
+            student = students[roll]
+            print(f"\nFound: {student['name']} (Roll: {roll}) - Marks: {student['marks']}")
+        else:
+            print("❌ No student found with this roll number.")
+    
+    elif choice == '2':
+        name_query = input("Enter student name (or part of name): ").strip().lower()
+        found = False
+        
+        for roll, info in students.items():
+            if name_query in info["name"].lower():
+                print(f"   {info['name']} (Roll: {roll}) - Marks: {info['marks']}")
+                found = True
+        
+        if not found:
+            print(f"❌ No students found with name containing '{name_query}'.")
+    else:
+        print("❌ Invalid choice.")
+
+# ==================== DATA EXPORT FUNCTIONS ====================
+
+def export_data():
+    """Export student data to a text file."""
+    if not students:
+        print("❌ No data to export.")
+        return
+    
+    try:
+        filename = input("Enter filename (default: students_report.txt): ").strip()
+        if not filename:
+            filename = "students_report.txt"
+        
+        with open(filename, "w") as f:
+            f.write("="*50 + "\n")
+            f.write("STUDENT MARKS REPORT\n")
+            f.write("="*50 + "\n\n")
+            f.write(f"Generated on: {get_current_date()}\n")
+            f.write(f"Total Students: {len(students)}\n\n")
+            
+            # Sort by roll number
+            sorted_rolls = sorted(students.keys())
+            
+            for roll in sorted_rolls:
+                info = students[roll]
+                f.write(f"Roll: {roll}\n")
+                f.write(f"Name: {info['name']}\n")
+                f.write(f"Marks: {info['marks']}/100\n")
+                f.write("-"*30 + "\n")
+            
+            # Add statistics
+            marks_list = [info["marks"] for info in students.values()]
+            average = sum(marks_list) / len(marks_list) if marks_list else 0
+            
+            f.write("\n" + "="*50 + "\n")
+            f.write("SUMMARY STATISTICS\n")
+            f.write("="*50 + "\n")
+            f.write(f"Average Marks: {average:.2f}\n")
+            f.write(f"Highest Marks: {max(marks_list) if marks_list else 0}\n")
+            f.write(f"Lowest Marks: {min(marks_list) if marks_list else 0}\n")
+        
+        print(f"✅ Data exported to {filename}")
+        
+    except Exception as e:
+        print(f"❌ Error exporting data: {e}")
+
+def get_current_date():
+    """Get current date for reports."""
+    from datetime import datetime
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+# ==================== MAIN MENU FUNCTION ====================
+
+def main():
+    """Main function to run the student management system."""
+    # Load existing data
+    if not load_data():
+        print("⚠️ Starting with empty database due to load error.")
+    
+    while True:
+        print("\n" + "="*50)
+        print("🎓 STUDENT MARKS MANAGEMENT SYSTEM 🎓")
+        print("="*50)
+        print("1. Add New Student")
+        print("2. View Student Details")
+        print("3. View All Students")
+        print("4. Update Student Marks")
+        print("5. Delete Student")
+        print("6. Search Student")
+        print("7. Show Statistics")
+        print("8. Export Data")
+        print("9. Save Data")
+        print("10. Exit")
+        print("="*50)
+        
+        choice = input("\nEnter your choice (1-10): ").strip()
+        
+        if choice == '1':
+            add_student()
+        elif choice == '2':
+            view_student()
+        elif choice == '3':
+            view_all_students()
+        elif choice == '4':
+            update_marks()
+        elif choice == '5':
+            delete_student()
+        elif choice == '6':
+            search_student()
+        elif choice == '7':
+            show_statistics()
+        elif choice == '8':
+            export_data()
+        elif choice == '9':
+            save_data()
+        elif choice == '10':
+            confirm = input("Save data before exiting? (yes/no): ").strip().lower()
+            if confirm in ['yes', 'y']:
+                save_data()
+            print("\n👋 Thank you for using Student Marks Management System!")
+            break
+        else:
+            print("❌ Invalid choice. Please select 1-10.")
+        
+        # Pause to let user see output
+        input("\nPress Enter to continue...")
+
+# ==================== ENTRY POINT ====================
+
+if __name__ == "__main__":
+    main()
