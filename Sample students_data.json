@@ -1,0 +1,14 @@
+{
+    "CS101": {
+        "name": "John Doe",
+        "marks": 85.5
+    },
+    "CS102": {
+        "name": "Jane Smith",
+        "marks": 92.0
+    },
+    "CS103": {
+        "name": "Bob Johnson",
+        "marks": 78.5
+    }
+}
